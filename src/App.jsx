@@ -106,6 +106,8 @@ function App() {
     () => localStorage.getItem('nexus_theme') || 'light'
   )
   const [active, setActive] = useState('overview')
+  const [panel, setPanel] = useState(null) // 'notifications' | 'profile' | 'search' | 'settings' | null
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -147,13 +149,20 @@ function App() {
 
   return (
     <div className="app-shell">
+      {panel && panel !== 'settings' && (
+        <div className="panel-backdrop" onClick={() => setPanel(null)} />
+      )}
       <Sidebar
         active={active}
         setActive={setActive}
         user={user}
         items={visibleNav}
         onLogout={logout}
+        onSettings={() => setPanel('settings')}
       />
+      {panel === 'settings' && (
+        <SettingsModal user={user} theme={theme} setTheme={setTheme} onClose={() => setPanel(null)} onLogout={logout} />
+      )}
       <main className="main-content">
         <header className="topbar">
           <div className="mobile-brand">
@@ -166,13 +175,50 @@ function App() {
             <strong>{titles[active].title}</strong>
           </div>
           <div className="top-actions">
-            <button className="icon-button" aria-label="Search">
-              <Search size={16} />
-            </button>
-            <button className="icon-button" aria-label="Notifications">
-              <Bell size={16} />
-              <span className="notification-dot" />
-            </button>
+            {/* Search */}
+            {panel === 'search' ? (
+              <div className="search-inline">
+                <Search size={14} />
+                <input
+                  autoFocus
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search workspace…"
+                  onKeyDown={e => e.key === 'Escape' && setPanel(null)}
+                />
+                <button
+                  className="icon-button small"
+                  onClick={() => { setPanel(null); setSearchQuery('') }}
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            ) : (
+              <button
+                className="icon-button"
+                onClick={() => setPanel('search')}
+                aria-label="Search"
+              >
+                <Search size={16} />
+              </button>
+            )}
+
+            {/* Notifications */}
+            <div className="panel-wrap">
+              <button
+                className={`icon-button ${panel === 'notifications' ? 'panel-btn-active' : ''}`}
+                onClick={() => setPanel(p => p === 'notifications' ? null : 'notifications')}
+                aria-label="Notifications"
+              >
+                <Bell size={16} />
+                <span className="notification-dot" />
+              </button>
+              {panel === 'notifications' && (
+                <NotificationsPanel onClose={() => setPanel(null)} />
+              )}
+            </div>
+
+            {/* Theme toggle */}
             <button
               className="icon-button"
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
@@ -180,8 +226,24 @@ function App() {
             >
               {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
             </button>
-            <div className="avatar">
-              {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+
+            {/* Profile */}
+            <div className="panel-wrap">
+              <button
+                className="avatar avatar-btn"
+                onClick={() => setPanel(p => p === 'profile' ? null : 'profile')}
+                aria-label="Profile"
+              >
+                {user.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+              </button>
+              {panel === 'profile' && (
+                <ProfileDropdown
+                  user={user}
+                  onLogout={logout}
+                  onSettings={() => setPanel('settings')}
+                  onClose={() => setPanel(null)}
+                />
+              )}
             </div>
           </div>
         </header>
@@ -204,15 +266,10 @@ function App() {
 }
 
 function Login({ onLogin }) {
-  const [accounts, setAccounts] = useState([])
-  const [email, setEmail] = useState('admin@demo.com')
-  const [password, setPassword] = useState('demo123')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
-
-  useEffect(() => {
-    api('/api/auth/demo-accounts').then(setAccounts).catch(() => setAccounts([]))
-  }, [])
 
   const submit = async (event) => {
     event.preventDefault()
@@ -274,21 +331,12 @@ function Login({ onLogin }) {
             {busy ? 'Signing in…' : 'Sign in'} <ArrowUpRight size={15} />
           </button>
         </form>
-        <div className="demo-box">
-          <div className="eyebrow">Demo workspace accounts</div>
-          {accounts.map(account => (
-            <button key={account.email} onClick={() => setEmail(account.email)}>
-              <span>{account.email}</span>
-              <span className="badge badge-blue">{account.role}</span>
-            </button>
-          ))}
-        </div>
       </div>
     </div>
   )
 }
 
-function Sidebar({ active, setActive, user, items, onLogout }) {
+function Sidebar({ active, setActive, user, items, onLogout, onSettings }) {
   return (
     <aside className="sidebar">
       <div className="brand-lockup sidebar-brand">
@@ -321,7 +369,7 @@ function Sidebar({ active, setActive, user, items, onLogout }) {
         ))}
       </nav>
       <div className="sidebar-footer">
-        <button className="sidebar-item">
+        <button className="sidebar-item" onClick={onSettings}>
           <Settings size={16} />
           <span>Settings</span>
         </button>
@@ -1090,6 +1138,163 @@ function LoadingPanel() {
   return (
     <div className="card loading-panel">
       <RefreshCw className="spin" size={18} /> Loading live data…
+    </div>
+  )
+}
+
+const NOTIFICATIONS = [
+  { id: 1, icon: 'success', title: 'Mobile App Launch hit 89% completion', time: '18 min ago', read: false },
+  { id: 2, icon: 'accent',  title: 'Invoice TXN-8822 received from Nexus Technologies', time: '1h ago', read: false },
+  { id: 3, icon: 'warning', title: 'Lucas Mendes submitted a PTO request', time: '3h ago', read: true },
+  { id: 4, icon: 'success', title: 'Orion Systems deal marked Closed Won', time: '5h ago', read: true },
+  { id: 5, icon: 'accent',  title: 'Lead Qualification Router processed 42 leads', time: 'Yesterday', read: true },
+]
+
+function NotificationsPanel({ onClose }) {
+  const unread = NOTIFICATIONS.filter(n => !n.read).length
+  return (
+    <div className="dropdown-panel notif-panel">
+      <div className="dropdown-header">
+        <strong>Notifications</strong>
+        {unread > 0 && <span className="badge badge-blue">{unread} new</span>}
+      </div>
+      <div className="notif-list">
+        {NOTIFICATIONS.map(n => (
+          <div key={n.id} className={`notif-row ${n.read ? 'read' : ''}`}>
+            <div className={`activity-icon ${n.icon}`} style={{ flexShrink: 0 }}>
+              <Activity size={13} />
+            </div>
+            <div className="notif-body">
+              <p>{n.title}</p>
+              <span>{n.time}</span>
+            </div>
+            {!n.read && <i className="notif-dot" />}
+          </div>
+        ))}
+      </div>
+      <div className="dropdown-footer">
+        <button className="btn-ghost compact" onClick={onClose}>
+          Mark all as read
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ProfileDropdown({ user, onLogout, onSettings, onClose }) {
+  const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+  return (
+    <div className="dropdown-panel profile-panel">
+      <div className="profile-hero">
+        <div className="avatar avatar-lg">{initials}</div>
+        <div>
+          <strong>{user.name}</strong>
+          <span>{user.email}</span>
+          <span className="badge badge-blue" style={{ marginTop: 5 }}>{user.role}</span>
+        </div>
+      </div>
+      <div className="dropdown-divider" />
+      <button
+        className="dropdown-item"
+        onClick={() => { onSettings(); onClose(); }}
+      >
+        <Settings size={14} />
+        Account settings
+      </button>
+      <div className="dropdown-divider" />
+      <button
+        className="dropdown-item danger"
+        onClick={() => { onLogout(); onClose(); }}
+      >
+        <LogOut size={14} />
+        Sign out
+      </button>
+    </div>
+  )
+}
+
+function SettingsModal({ user, theme, setTheme, onClose, onLogout }) {
+  const initials = user.name.split(' ').map(n => n[0]).join('').slice(0, 2)
+  return (
+    <div className="modal-backdrop" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card settings-modal">
+        {/* Header */}
+        <div className="modal-header">
+          <div>
+            <div className="eyebrow">Workspace</div>
+            <h2>Settings</h2>
+          </div>
+          <button className="icon-button" onClick={onClose}>
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Profile section */}
+        <div className="settings-section">
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Account</div>
+          <div className="profile-hero">
+            <div className="avatar avatar-lg">{initials}</div>
+            <div>
+              <strong>{user.name}</strong>
+              <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>{user.email}</span>
+              <div>
+                <span className="badge badge-blue" style={{ marginTop: 5 }}>{user.role}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="dropdown-divider" style={{ margin: '20px 0' }} />
+
+        {/* Appearance */}
+        <div className="settings-section">
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Appearance</div>
+          <div className="settings-row">
+            <div>
+              <strong>Theme</strong>
+              <p>Choose light or dark interface</p>
+            </div>
+            <div className="theme-toggle-group">
+              <button
+                className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => setTheme('light')}
+              >
+                <Sun size={13} /> Light
+              </button>
+              <button
+                className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => setTheme('dark')}
+              >
+                <Moon size={13} /> Dark
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="dropdown-divider" style={{ margin: '20px 0' }} />
+
+        {/* Workspace */}
+        <div className="settings-section">
+          <div className="eyebrow" style={{ marginBottom: 12 }}>Workspace</div>
+          <div className="settings-row">
+            <div>
+              <strong>Acme Corporation</strong>
+              <p>Enterprise workspace</p>
+            </div>
+            <span className="badge badge-green">Active</span>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="modal-actions" style={{ borderTop: '1px solid var(--border-soft)', marginTop: 24, paddingTop: 16 }}>
+          <button className="btn-ghost danger-btn" onClick={() => { onLogout(); onClose(); }}>
+            <LogOut size={13} /> Sign out
+          </button>
+          <button className="btn-primary" onClick={onClose}>
+            Done
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
