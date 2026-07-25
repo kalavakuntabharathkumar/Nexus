@@ -1,0 +1,32 @@
+{
+  "name": "nexus-enterprise-os",
+  "version": "1.0.0",
+  "description": "Nexus enterprise operations dashboard",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5000",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 5000"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kalavakuntabharathkumar/Nexus.git"
+  },
+  "keywords": [],
+  "author": "kalavakuntabharathkumar",
+  "license": "ISC",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/kalavakuntabharathkumar/Nexus/issues"
+  },
+  "homepage": "https://github.com/kalavakuntabharathkumar/Nexus#readme",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "lucide-react": "^1.26.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "recharts": "^3.10.1",
+    "tailwindcss": "^4.3.3",
+    "vite": "^8.1.5"
+  }
+}

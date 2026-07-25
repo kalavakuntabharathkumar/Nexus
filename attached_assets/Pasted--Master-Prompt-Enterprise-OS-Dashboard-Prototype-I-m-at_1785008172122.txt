@@ -1,0 +1,106 @@
+# Master Prompt — Enterprise OS Dashboard (Prototype)
+
+I'm attaching a Figma design file. Build this **exact visual design** as a working full-stack prototype. Follow every rule below precisely.
+
+---
+
+## Tech Stack (locked — do not add anything outside this list)
+
+**Frontend:** React (Vite) + Tailwind CSS + Context API (no Redux/Zustand) + `fetch()` (no Axios) + `recharts` (charts) + `lucide-react` (icons)
+
+**Backend:** FastAPI + SQLAlchemy (ORM) + SQLite (dev database) + Pydantic (schemas) + JWT (`python-jose` or `pyjwt`) + `passlib`/`bcrypt` (password hashing)
+
+Do not introduce any other library, framework, database, or architectural pattern (no GraphQL, no microservices, no Docker, no Next.js, no ORM alternatives, no state-management libraries, no CSS frameworks besides Tailwind).
+
+---
+
+## Strict Rules (never break these, even if it conflicts with simplicity below)
+
+1. **No hardcoded/mock data in the frontend.** Every number, name, and record shown on screen must come from the FastAPI backend via a real `fetch()` call to the SQLite database. Zero static arrays of fake data in React components.
+2. **Every Create, Update, and Delete action must actually persist** to the SQLite database and be reflected for all users the next time they load that data (not just updated in local browser state).
+3. **RBAC must be enforced on the backend**, not just hidden in the UI. Every protected endpoint must check the logged-in user's role/token server-side before executing. The frontend hiding a button is not enough — a blocked action attempted directly against the API must also fail with `403 Forbidden`.
+4. Passwords must be hashed (never stored or returned in plain text). Auth must use JWT tokens.
+
+## Soft Rule (follow this unless it would force you to break a rule above)
+
+Keep the code as simple and readable as possible — write it the way a capable fresh graduate would: plain functions, no design patterns, no unnecessary abstraction layers, no premature optimization, no "services/repository" layers. One file per module on both frontend and backend. Do not over-engineer. Do not pad the codebase. If a simpler working version and a "cleaner architecture" version conflict, always choose the simpler one, as long as it still satisfies the strict rules above.
+
+---
+
+## Modules to Build (match the Figma design exactly for layout/visuals)
+
+1. **Overview** — dashboard home: stat cards (revenue, active employees, open deals, project count), revenue-vs-expenses chart, CRM pipeline breakdown chart, recent activity feed
+2. **HRMS** — employee directory: list + add/edit/delete employee
+3. **CRM** — deals pipeline: list + add/edit/delete deal
+4. **ERP** — inventory: list + add/edit/delete item, stock/reorder tracking
+5. **Finance** — transactions ledger: list + add/edit/delete transaction
+6. **Project Management** — projects list: list + add/edit/delete project, progress/task tracking
+7. **AI Copilot** — chat-style interface; a `/api/copilot/ask` endpoint that returns a response referencing live data from the other modules (simple rule-based or LLM-based logic is fine — keep it simple)
+8. **Analytics** — charts aggregating data across modules (read-only)
+9. **Workflow Automation** — list of automation rules: list + add/edit/delete + on/off toggle
+
+---
+
+## Data Model (entities & fields — build these as SQLAlchemy models)
+
+**User** (for auth/RBAC): `id, name, email, password_hash, role (admin/manager/employee)`
+
+**Employee**: `id, name, role, department, status (active/remote/leave), location, joined_date`
+
+**Deal** (CRM): `id, company, contact, value, stage (Prospecting/Qualified/Proposal/Negotiation/Closed Won), probability, owner`
+
+**Project**: `id, name, team_size, progress, status (on-track/at-risk/delayed), due_date, tasks_done, tasks_total`
+
+**InventoryItem** (ERP): `sku, name, category, stock, reorder_threshold, price, supplier`
+
+**Transaction** (Finance): `id, description, category, amount, date, status (cleared/pending)`
+
+**Workflow**: `id, name, trigger, run_count, success_rate, is_active (bool)`
+
+Add `created_at` / `updated_at` timestamps to every table.
+
+---
+
+## RBAC Rules (3 roles)
+
+- **Admin**: full access to all modules, full CRUD everywhere, can manage Users
+- **Manager**: full CRUD on HRMS, CRM, ERP, Projects, Workflow, Analytics; **read-only** on Finance
+- **Employee**: read-only on all modules **except** can edit their **own** Employee profile (`PUT /api/hrms/employees/me`); cannot access Finance or Workflow modules at all (hidden in sidebar + blocked on backend)
+
+Sidebar navigation must show/hide modules based on the logged-in user's role. Backend must independently re-check role on every request regardless of what the frontend sends.
+
+---
+
+## Required API Structure
+
+Standard REST CRUD per module, e.g.:
+```
+GET    /api/hrms/employees
+GET    /api/hrms/employees/{id}
+POST   /api/hrms/employees
+PUT    /api/hrms/employees/{id}
+DELETE /api/hrms/employees/{id}
+```
+Same pattern for `crm/deals`, `erp/inventory`, `finance/transactions`, `projects`, `workflow`. Plus:
+```
+POST /api/auth/login       → returns JWT
+GET  /api/auth/me          → returns current user + role
+POST /api/copilot/ask      → returns AI response using live data
+GET  /api/analytics/*      → aggregated read-only stats
+```
+
+---
+
+## Seed Data
+
+On first run, seed the database with realistic sample data (similar in style/volume to the Figma prototype: ~6 employees, ~5 deals, ~5 projects, ~5 inventory items, ~5 transactions, ~5 workflows) plus 3 demo login users, one per role (e.g. `admin@demo.com`, `manager@demo.com`, `employee@demo.com`, all with a simple shared demo password), so the app is immediately explorable after setup.
+
+---
+
+## What "done" looks like
+
+- Every button in the Figma design that implies an action (add, edit, delete, toggle, login, logout) is fully functional and hits a real backend endpoint
+- Refreshing the page shows the same data (nothing resets)
+- Logging in as different roles shows different sidebar/module access and different permission results
+- No console errors, no dead/non-functional buttons
+- Total codebase should land naturally around 5,000–6,000 lines by simply following the rules above — do not artificially pad or artificially compress to hit any specific number

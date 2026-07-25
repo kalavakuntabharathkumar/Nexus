@@ -1,0 +1,38 @@
+Please do the following, in order, carefully:
+
+## 1. Convert TypeScript to plain JavaScript
+- Rename `src/App.tsx` → `src/App.jsx` and `src/main.tsx` → `src/main.jsx`
+- Remove ALL TypeScript-only syntax: type annotations (`: string`, `: number`, etc.), `type X = ...` declarations, `interface X {...}` blocks, generics (`useState<...>`), and any `as Type` casts
+- Do NOT change any logic, behavior, component structure, API calls, or styling — this must be a pure syntax conversion, everything should work exactly the same afterward
+- Update `vite.config.ts` → `vite.config.js` (remove TS-specific config)
+- Delete `tsconfig.json`
+- Remove `typescript` and all `@types/*` packages from `package.json` and `package-lock.json`, and remove `"oxfmt"`/type-check related scripts if they reference TS
+- After converting, run the project and confirm it still builds and runs with no errors
+
+## 2. Reformat code to be clearly readable
+- Reformat `App.jsx` (and any other file) so each JSX element, condition, and function is on its own line — no long compressed one-liners
+- Keep it simple: plain functions, clear variable names, no added abstraction beyond what's already there
+
+## 3. Remove Replit-specific / agent-only files that shouldn't be in the repo
+- Delete the `.agents/` folder entirely (this is Replit Agent's internal memory, not part of the actual project)
+- Check `.gitignore` and make sure it excludes: `node_modules/`, `__pycache__/`, `*.db`, `.env`, `dist/`, `.venv/`
+- Do not delete `.replit` if the project still needs to run inside Replit — but confirm it contains no personal/agent metadata beyond standard run configuration
+
+## 4. Fix git identity so I am the only contributor (not Replit Agent)
+- Set git config for this repo to:
+  ```
+  git config user.name "kalavakuntabharathkumar"
+  git config user.email "bharathkumarkalavkunta@gmail.com"
+  ```
+- Check `git log --format='%an %ae'` — if any existing commits show a different author (e.g. "Replit Agent" or a Replit bot email), do NOT just add a new commit on top. Instead:
+  - Squash the entire history into a single fresh commit authored by me, OR
+  - Re-initialize the repo (`rm -rf .git && git init`) and create one clean initial commit
+  - Either way, the final result must have every commit's author and committer both showing my name/email above
+- Confirm afterward with `git log --format='%an %ae'` that only my identity appears
+
+## 5. Push to GitHub
+- Push the cleaned-up repo to my GitHub account under username `kalavakuntabharathkumar`
+- Confirm the push succeeded and show me the final repo URL
+- After pushing, double-check on the "Insights → Contributors" section of the repo that only I appear as a contributor — if Replit Agent or any bot account still shows up, fix it before telling me it's done
+
+Please go through these steps one at a time and confirm each is complete before moving to the next, rather than doing everything silently and reporting back at the end.
